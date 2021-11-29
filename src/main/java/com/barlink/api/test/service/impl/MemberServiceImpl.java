@@ -1,5 +1,8 @@
 package com.barlink.api.test.service.impl;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 
 import javax.persistence.EntityManager;
@@ -16,6 +19,7 @@ import com.barlink.api.test.dto.MemberDTO;
 import com.barlink.api.test.service.MemberService;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
 @Service
@@ -48,18 +52,23 @@ public class MemberServiceImpl implements MemberService{
 
 	@Override
 	public void updateMemberTeam(MemberDTO dto) {
-		Member m = new Member();
-		m.setName(dto.getName());
 		Team t = new Team();
 		t.setTeamName(dto.getTeamName());
-		
-		m = repo.findByName(dto.getName());
 		t = tRepo.findByTeamName(t.getTeamName());
 		
-		m.setTeamId(t);
-		m = repo.save(m);
+		List<Member> mList = repo.findByNameContains(dto.getName());
+		
+		for(Member m : mList) {
+			m.setTeamId(t);
+			m = repo.save(m);
+		}
+		
+		
 		
 	}
+	
+	
+	
 
 	@Override
 	public List<MemberDTO> findAllMember() {
@@ -69,18 +78,19 @@ public class MemberServiceImpl implements MemberService{
 		JPAQueryFactory factory = new JPAQueryFactory(em);
 		
 		/**
-		 * 필드 직접 조회. setter와 동일하게 멤버변수들의 명칭이 일치해야 한다. 
+		 * 필드 직접 조회. 멤버변수들의 명칭이 일치해야 한다. 
 		 */
-//		QueryResults<MemberDTO> list = factory.select(Projections.fields(MemberDTO.class, 
-//				mem.id,
-//				mem.name,
-//				mem.age,
-//				tem.teamName,
-//				mem.joinDate
-//				))
-//				.from(mem.member)
-//				.innerJoin(mem.teamId(),tem)
-//				.fetchResults();
+		QueryResults<MemberDTO> list = factory.select(Projections.fields(MemberDTO.class, 
+				mem.id,
+				mem.name,
+				mem.age,
+				tem.teamName,
+				mem.joinDate
+				))
+				.from(mem.member)
+				.innerJoin(mem.teamId(),tem)
+				.fetchResults();
+		
 		
 		
 		/*
@@ -108,6 +118,7 @@ public class MemberServiceImpl implements MemberService{
 		/**
 		 * Projection 대상을 setter메서드로 조회, 생성자가 존재하면 에러 발생함. setter/getter 만 존재해야됨.
 		 */
+		/*
 		List<MemberDTO> listResult = factory.select(Projections.bean(MemberDTO.class	
 				,mem.id,
 				mem.name,
@@ -118,6 +129,8 @@ public class MemberServiceImpl implements MemberService{
 				.innerJoin(mem.teamId(),tem)
 				.fetch();
 		
+		*/
+		
 		/**
 		 * Projection 대상에 @QueryProjection 어노테이션으로 QueryDSL에 의존성 주입. DTO도 Q파일이 생성 가능해진다.
 		 */
@@ -126,9 +139,93 @@ public class MemberServiceImpl implements MemberService{
 //				.innerJoin(mem.teamId(),tem)
 //				.fetch();
 				
-//		List<Object> result= list.getResults();
-		List<MemberDTO> result= listResult;
+		List<MemberDTO> result= list.getResults();
+//		List<MemberDTO> result= listResult;
 		return result;
 	}
-
+	
+	
+	/**
+	 * 동적 조회. 파라미터는 빈값일수도, 아닐 수도 있음.
+	 */
+	@Override
+	public List<MemberDTO> findAllMember2(MemberDTO dto){
+		
+		JPAQueryFactory factory = new JPAQueryFactory(em);
+		
+		QMember mem = QMember.member;
+		QTeam tem = QTeam.team;
+		
+		List<MemberDTO> result = factory
+				.select(Projections.fields(MemberDTO.class, 
+					mem.id,
+					mem.name,
+					mem.age,
+					tem.teamName,
+					mem.joinDate
+				))
+				.from(mem.member)
+				.innerJoin(mem.teamId(),tem)
+				.where(	//동적쿼리는 where절 안에 필요한 만큼 넣을 수 있다.
+						dynamicCowName(dto.getName(),mem),
+						dynamicMemberId(dto.getId(),mem),
+						dynamicMemberJoinDate(dto,mem),
+						dynamicTeamName(dto.getTeamName(), tem)
+						)
+				.fetch();
+		
+		return result;
+	}
+	
+	
+	//동적쿼리 메서드
+	/**********************************************************************/
+	
+	private BooleanExpression dynamicCowName(String name, QMember m) {
+		if( !"".equals(name) && name != null ) {
+			//name값이 null이거나 빈값이 아니라면 where절에서 name을 조회한다.
+			return m.name.eq(name);
+		}
+		
+		return null;
+	}
+	
+	private BooleanExpression dynamicMemberId(long memberId, QMember m) {
+		if(memberId != 0) {
+			return m.id.eq(memberId);
+		}
+		
+		return null;
+	}
+	
+	private BooleanExpression dynamicMemberJoinDate(MemberDTO dto, QMember m) {
+		
+		if(dto.getJoinDate() != null) {
+			LocalDate dt = dto.getJoinDate().toLocalDate();	//LocalDate로 변환.
+			LocalDateTime after = dt.atStartOfDay();								//해당일 0시 0분
+			LocalDateTime before = LocalDateTime.of(dt, LocalTime.of(23,59,59));	//해당일 23시 59분 59초
+			
+			if( dto.getJoinDate() != null ) { 
+				//입력한 날짜에 회원가입한 회원 조회 
+				return m.joinDate.between(after, before);
+			}
+		}
+		
+		return null;
+	}
+	
+	private BooleanExpression dynamicTeamName(String teamName, QTeam t) {
+		
+		if(!"".equals(teamName) && teamName != null ) {
+			return t.teamName.eq(teamName);
+		}
+		
+		return null;
+	}
+	
+	/**********************************************************************/
+	
+	
+	
+	
 }

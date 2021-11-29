@@ -70,6 +70,7 @@ public class MemberController {
 			service.updateMemberTeam(dto);
 			result.put("result", true);
 		}catch(Exception e) {
+			e.printStackTrace();
 			result.put("result", false);
 		}
 		return new ResponseEntity<Map<String,Object>> (result,HttpStatus.OK);
@@ -85,6 +86,22 @@ public class MemberController {
 
 		try {
 			List<MemberDTO> list = service.findAllMember(); 
+			result.put("result", true);
+			result.put("list", list);
+		}catch(Exception e) {
+			e.printStackTrace();
+			result.put("result", false);
+		}
+		return new ResponseEntity<Map<String,Object>> (result,HttpStatus.OK);
+	}
+	
+	
+	@PostMapping("/selectMemberList2")
+	public ResponseEntity<Map<String,Object>> selectMemberList2(HttpServletRequest req, HttpServletResponse res, @RequestBody MemberDTO dto){
+		Map<String,Object> result = new HashMap();
+
+		try {
+			List<MemberDTO> list = service.findAllMember2(dto); 
 			result.put("result", true);
 			result.put("list", list);
 		}catch(Exception e) {

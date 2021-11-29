@@ -14,4 +14,6 @@ public interface MemberService {
 
 	List<MemberDTO> findAllMember();
 
+	List<MemberDTO> findAllMember2(MemberDTO dto);
+
 }
