@@ -14,12 +14,18 @@ import org.springframework.stereotype.Service;
 import com.barlink.api.test.domain.Member;
 import com.barlink.api.test.domain.QMember;
 import com.barlink.api.test.domain.QTeam;
+import com.barlink.api.test.domain.QTeamView;
 import com.barlink.api.test.domain.Team;
+import com.barlink.api.test.domain.TeamView;
 import com.barlink.api.test.dto.MemberDTO;
+import com.barlink.api.test.dto.SubQueryDTO;
+import com.barlink.api.test.dto.TeamDTO;
 import com.barlink.api.test.service.MemberService;
 import com.querydsl.core.QueryResults;
+import com.querydsl.core.types.ExpressionUtils;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
 @Service
@@ -225,7 +231,79 @@ public class MemberServiceImpl implements MemberService{
 	
 	/**********************************************************************/
 	
-	
+	/**
+	 * subquery사용
+	 */
+	@Override
+	public List<SubQueryDTO> subQuery(MemberDTO dto) {
+		JPAQueryFactory factory = new JPAQueryFactory(em);
+		
+		QMember mem = QMember.member;
+		QTeam tem = QTeam.team;
+		
+		
+		//1. select 절에서의 SubQuery
+		List<SubQueryDTO> list = factory.select(Projections.fields(SubQueryDTO.class, 
+					ExpressionUtils.as(JPAExpressions.select(tem.count())
+								.from(tem)
+							, "teamCnt"),
+					ExpressionUtils.as(JPAExpressions.select(mem.count())
+								.from(mem)
+							, "memberCnt")
+				))
+				.from(mem)
+				.limit(1)
+				.fetch();
+		
+		return list;
+	}
+
+	@Override
+	public List<TeamDTO> subQuery2(MemberDTO dto) {
+		//from절에서의 subquery
+		JPAQueryFactory factory = new JPAQueryFactory(em);
+		
+		QMember mem = QMember.member;
+		QTeam tem = QTeam.team;
+		
+		
+		//2. where절에서의 SubQuery
+		List<TeamDTO> list = factory
+				.select(Projections.bean(TeamDTO.class, 
+						tem.teamId,
+						tem.teamName
+				))
+				.from(tem)
+				.where(tem.teamId.in(	//where절에서의 서브쿼리는 ExpressionUtils를 사용하지 않는다.
+							JPAExpressions.select(mem.teamId().teamId)
+							.from(mem)
+							.groupBy(mem.teamId())
+							.having(mem.teamId().count().gt(2))
+						)
+					)
+				.fetch();
+		
+		return list;
+	}
+
+	@Override
+	public List<TeamView> subQuery3() {
+		JPAQueryFactory factory = new JPAQueryFactory(em);
+		
+		QMember mem = QMember.member;
+		QTeam tem = QTeam.team;
+		QTeamView fDto = QTeamView.teamView;
+		
+		List<TeamView> list = factory.select(Projections.bean(TeamView.class, 
+					fDto.name,
+					fDto.teamName
+				))
+				.from(fDto)
+				.fetch();
+				
+		
+		return list;
+	}
 	
 	
 }

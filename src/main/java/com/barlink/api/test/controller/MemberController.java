@@ -14,7 +14,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.barlink.api.test.domain.TeamView;
 import com.barlink.api.test.dto.MemberDTO;
+import com.barlink.api.test.dto.SubQueryDTO;
+import com.barlink.api.test.dto.TeamDTO;
 import com.barlink.api.test.service.MemberService;
 
 import io.swagger.annotations.Api;
@@ -41,6 +44,7 @@ public class MemberController {
 			result.put("result", true);
 		}catch(Exception e) {
 			result.put("result", false);
+			result.put("message", e.getMessage());
 		}
 		return new ResponseEntity<Map<String,Object>> (result,HttpStatus.OK);
 	}
@@ -56,6 +60,7 @@ public class MemberController {
 			result.put("result", true);
 		}catch(Exception e) {
 			result.put("result", false);
+			result.put("message", e.getMessage());
 		}
 		return new ResponseEntity<Map<String,Object>> (result,HttpStatus.OK);
 	}
@@ -70,8 +75,8 @@ public class MemberController {
 			service.updateMemberTeam(dto);
 			result.put("result", true);
 		}catch(Exception e) {
-			e.printStackTrace();
 			result.put("result", false);
+			result.put("message", e.getMessage());
 		}
 		return new ResponseEntity<Map<String,Object>> (result,HttpStatus.OK);
 	}
@@ -89,8 +94,8 @@ public class MemberController {
 			result.put("result", true);
 			result.put("list", list);
 		}catch(Exception e) {
-			e.printStackTrace();
 			result.put("result", false);
+			result.put("message", e.getMessage());
 		}
 		return new ResponseEntity<Map<String,Object>> (result,HttpStatus.OK);
 	}
@@ -105,11 +110,60 @@ public class MemberController {
 			result.put("result", true);
 			result.put("list", list);
 		}catch(Exception e) {
-			e.printStackTrace();
 			result.put("result", false);
+			result.put("message", e.getMessage());
 		}
 		return new ResponseEntity<Map<String,Object>> (result,HttpStatus.OK);
 	}
+	
+	@PostMapping("/subQuery")
+	public ResponseEntity<Map<String,Object>> subQuery(HttpServletRequest req, HttpServletResponse res, @RequestBody MemberDTO dto){
+		Map<String,Object> result = new HashMap();
+
+		try {
+			List<SubQueryDTO> list = service.subQuery(dto); 
+			
+			result.put("result", true);
+			result.put("list", list);
+		}catch(Exception e) {
+			e.printStackTrace();
+			result.put("result", false);
+			result.put("message", e.getMessage());
+		}
+		return new ResponseEntity<Map<String,Object>> (result,HttpStatus.OK);
+	}
+	@PostMapping("/subQuery2")
+	public ResponseEntity<Map<String,Object>> subQuery2(HttpServletRequest req, HttpServletResponse res, @RequestBody MemberDTO dto){
+		Map<String,Object> result = new HashMap();
+		
+		try {
+			List<TeamDTO> list = service.subQuery2(dto); 
+			result.put("result", true);
+			result.put("list", list);
+		}catch(Exception e) {
+			result.put("result", false);
+			result.put("message", e.getMessage());
+		}
+		return new ResponseEntity<Map<String,Object>> (result,HttpStatus.OK);
+	}
+	
+	
+	@PostMapping("/subQuery3")
+	public ResponseEntity<Map<String,Object>> subQuery3(HttpServletRequest req, HttpServletResponse res, @RequestBody MemberDTO dto){
+		Map<String,Object> result = new HashMap();
+		
+		try {
+			List<TeamView> list = service.subQuery3(); 
+			result.put("result", true);
+			result.put("list", list);
+		}catch(Exception e) {
+			result.put("result", false);
+			result.put("message", e.getMessage());
+		}
+		return new ResponseEntity<Map<String,Object>> (result,HttpStatus.OK);
+	}
+	
+	
 	
 	
 	
