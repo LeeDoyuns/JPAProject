@@ -1,2 +1,2 @@
 <h2>JPA Project</h2>
-<span>JPA 복습을 위해 만든 간단한 프로젝트. </span>
+<span>JPA에 대해 공부한 내용 정리. JPA.pptx</span>
